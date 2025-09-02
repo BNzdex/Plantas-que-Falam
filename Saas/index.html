@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plantas que Falam - Dashboard SaaS</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon"></span>
+                    <h1>Plantas que Falam</h1>
+                </div>
+                <nav class="nav">
+                    <button class="nav-btn active" data-tab="dashboard">
+                        Dashboard
+                    </button>
+                    <button class="nav-btn" data-tab="plants">
+                        Plantas
+                    </button>
+                    <button class="nav-btn" data-tab="analytics">
+                        Analises
+                    </button>
+                    <button class="nav-btn" data-tab="settings">
+                        Configurações
+                    </button>
+                </nav>
+                <div class="status-indicator">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="connection-status">Conectando...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <!-- Status Header -->
+                <div class="status-header">
+                    <div class="status-info">
+                        <h2>Dashboard das Plantas</h2>
+                        <p>Garanta a segurança das suas plantas através de sensores piezoelétricos</p>
+                    </div>
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="dominant-freq">0.0 Hz</div>
+                        <div class="frequency-label">Frequência da Comunicação</div>
+                        <div class="plant-status" id="plant-status">Silêncio</div>
+                    </div>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Sinal da Planta</span>
+                        </div>
+                        <div class="metric-value" id="raw-value">0</div>
+                        <div class="metric-subtitle">Intensidade do sinal</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Bioeletricidade</span>
+                        </div>
+                        <div class="metric-value" id="voltage">0.00 V</div>
+                        <div class="metric-subtitle">Atividade elétrica</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Intensidade</span>
+                        </div>
+                        <div class="metric-value" id="dominant-magnitude">0.000</div>
+                        <div class="metric-subtitle" id="dominant-magnitude-db">0.0 dB</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Atividade Média</span>
+                        </div>
+                        <div class="metric-value" id="average-magnitude">0.000</div>
+                        <div class="metric-subtitle">Comunicação contínua</div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Histórico de Comunicação</h3>
+                            <p>Últimas 20 "palavras" da sua planta</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="magnitudeChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Espectro da Voz Vegetal</h3>
+                            <p>Análise das frequências de comunicação</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="bandsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Frequency Bands List -->
+                <div class="bands-card">
+                    <div class="bands-header">
+                        <h3>Análise Detalhada da Comunicação Vegetal</h3>
+                        <p>Decodificação das diferentes "tonalidades" da sua planta</p>
+                    </div>
+                    <div class="bands-grid" id="bands-list">
+                        <!-- Bandas serão preenchidas via JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plants Tab -->
+            <div id="plants-tab" class="tab-content">
+                <div class="tab-header">
+                    <h2>Minhas Plantas</h2>
+                    <p>Gerencie suas plantas conectadas</p>
+                </div>
+                <div class="plants-grid" id="plants-grid">
+                    <!-- Plantas serão carregadas via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="analytics-tab" class="tab-content">
+                <div class="tab-header">
+                    <h2>Analytics Avançado</h2>
+                    <p>Análises profundas da comunicação vegetal</p>
+                </div>
+                <div class="analytics-content" id="analytics-content">
+                    <!-- Analytics serão carregados via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <div class="tab-header">
+                    <h2>Configurações</h2>
+                    <p>Personalize sua experiência</p>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <h3>Notificações</h3>
+                        <label class="switch">
+                            <input type="checkbox" id="notifications-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Receber alertas quando as plantas se comunicarem</span>
+                    </div>
+                    <div class="setting-group">
+                        <h3>Frequência de Atualização</h3>
+                        <select id="refresh-rate">
+                            <option value="1000">1 segundo</option>
+                            <option value="2000" selected>2 segundos</option>
+                            <option value="5000">5 segundos</option>
+                            <option value="10000">10 segundos</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <h3>Tema</h3>
+                        <select id="theme-select">
+                            <option value="green" selected>Verde Natureza</option>
+                            <option value="dark">Escuro</option>
+                            <option value="light">Claro</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
