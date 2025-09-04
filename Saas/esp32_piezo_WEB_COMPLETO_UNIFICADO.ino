@@ -1,16 +1,3 @@
-/*
- * ESP32 Piezoelectric Sensor - WEB DASHBOARD COMPLETO UNIFICADO
- * Para ESP32 LoRa LilyGO com display OLED
- * Sensor conectado no GPIO 34 SEM resistor pull-down
- * 
- * RECURSOS:
- * - Display OLED com dados em tempo real
- * - Servidor Web com dashboard moderno (HTML, CSS, JS embutidos)
- * - Interface responsiva e bonita
- * - Auto-refresh via JavaScript (sem WebSocket)
- * - Funciona com bibliotecas padrão do ESP32
- */
-
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
@@ -22,13 +9,13 @@
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 // Configurações WiFi
-const char* ssid = "iPhone"; // Altere para o seu SSID
-const char* password = "123456789"; // Altere para a sua senha
+const char* ssid = "iPhone"; 
+const char* password = "123456789"; 
 
 // Configurações FFT
-#define SAMPLES 512              // Número de amostras (deve ser potência de 2)
-#define SAMPLING_FREQUENCY 10000 // Frequência de amostragem em Hz
-#define PIEZO_PIN 34            // Pino analógico do sensor
+#define SAMPLES 512              
+#define SAMPLING_FREQUENCY 10000 
+#define PIEZO_PIN 34            
 
 // Variáveis FFT
 double vReal[SAMPLES];
@@ -38,50 +25,7 @@ ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, SAMPLES, SAMPLING_FREQ
 // Servidor Web
 WebServer server(80);
 
-// Variáveis de controle
-unsigned long lastDisplay = 0;
-const unsigned long displayInterval = 200; // Atualizar display a cada 200ms
 
-// Variáveis globais para dados
-double dominantFreq = 0;
-double maxMagnitude = 0;
-double dominantDb = -80;
-int rawSensorValue = 0;
-double sensorVoltage = 0;
-double avgMagnitude = 0;
-
-// Status de conexão
-bool wifiConnected = false;
-int webRequests = 0;
-
-// Histórico para gráfico simples
-#define HISTORY_SIZE 20
-double magnitudeHistory[HISTORY_SIZE];
-int historyIndex = 0;
-
-// Bandas de frequência para análise (em Hz)
-struct FrequencyBand {
-  String name;
-  double minFreq;
-  double maxFreq;
-  double magnitude;
-  double magnitudeDb;
-  String color; // Adicionado para o frontend
-};
-
-FrequencyBand bands[] = {
-  {"Sub Bass", 20, 60, 0, -80, "#22c55e"},
-  {"Bass", 60, 250, 0, -80, "#16a34a"},
-  {"Low Mid", 250, 500, 0, -80, "#15803d"},
-  {"Mid", 500, 2000, 0, -80, "#166534"},
-  {"High Mid", 2000, 4000, 0, -80, "#14532d"},
-  {"Presence", 4000, 6000, 0, -80, "#84cc16"},
-  {"Brilliance", 6000, 20000, 0, -80, "#65a30d"}
-};
-
-const int numBands = sizeof(bands) / sizeof(bands[0]);
-
-// HTML, CSS e JavaScript embutidos
 const char* HTML_CONTENT = R"rawliteral(
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -764,24 +708,20 @@ input:checked + .slider:before {
         <header class="header">
             <div class="header-content">
                 <div class="logo">
-                    <span class="logo-icon">🌿</span>
+                    <span class="logo-icon"></span>
                     <h1>Plantas que Falam</h1>
                 </div>
                 <nav class="nav">
                     <button class="nav-btn active" data-tab="dashboard">
-                        <span class="nav-icon">📊</span>
                         Dashboard
                     </button>
                     <button class="nav-btn" data-tab="plants">
-                        <span class="nav-icon">🌱</span>
                         Plantas
                     </button>
                     <button class="nav-btn" data-tab="analytics">
-                        <span class="nav-icon">📈</span>
-                        Analytics
+                        Analises
                     </button>
                     <button class="nav-btn" data-tab="settings">
-                        <span class="nav-icon">⚙️</span>
                         Configurações
                     </button>
                 </nav>
@@ -799,13 +739,13 @@ input:checked + .slider:before {
                 <!-- Status Header -->
                 <div class="status-header">
                     <div class="status-info">
-                        <h2>🌱 Dashboard das Plantas</h2>
-                        <p>Escute o que suas plantas têm a dizer através de sensores piezoelétricos</p>
+                        <h2>Dashboard das Plantas</h2>
+                        <p>Garanta a segurança das suas plantas através de sensores piezoelétricos</p>
                     </div>
                     <div class="frequency-display">
                         <div class="frequency-value" id="dominant-freq">0.0 Hz</div>
                         <div class="frequency-label">Frequência da Comunicação</div>
-                        <div class="plant-status" id="plant-status">🔴 Silêncio</div>
+                        <div class="plant-status" id="plant-status">Silêncio</div>
                     </div>
                 </div>
 
@@ -814,7 +754,6 @@ input:checked + .slider:before {
                     <div class="metric-card">
                         <div class="metric-header">
                             <span class="metric-title">Sinal da Planta</span>
-                            <span class="metric-icon">🌱</span>
                         </div>
                         <div class="metric-value" id="raw-value">0</div>
                         <div class="metric-subtitle">Intensidade do sinal</div>
@@ -823,7 +762,6 @@ input:checked + .slider:before {
                     <div class="metric-card">
                         <div class="metric-header">
                             <span class="metric-title">Bioeletricidade</span>
-                            <span class="metric-icon">⚡</span>
                         </div>
                         <div class="metric-value" id="voltage">0.00 V</div>
                         <div class="metric-subtitle">Atividade elétrica</div>
@@ -832,7 +770,6 @@ input:checked + .slider:before {
                     <div class="metric-card">
                         <div class="metric-header">
                             <span class="metric-title">Intensidade</span>
-                            <span class="metric-icon">📊</span>
                         </div>
                         <div class="metric-value" id="dominant-magnitude">0.000</div>
                         <div class="metric-subtitle" id="dominant-magnitude-db">0.0 dB</div>
@@ -841,7 +778,6 @@ input:checked + .slider:before {
                     <div class="metric-card">
                         <div class="metric-header">
                             <span class="metric-title">Atividade Média</span>
-                            <span class="metric-icon">🍃</span>
                         </div>
                         <div class="metric-value" id="average-magnitude">0.000</div>
                         <div class="metric-subtitle">Comunicação contínua</div>
@@ -852,7 +788,7 @@ input:checked + .slider:before {
                 <div class="charts-grid">
                     <div class="chart-card">
                         <div class="chart-header">
-                            <h3>🌿 Histórico de Comunicação</h3>
+                            <h3>Histórico de Comunicação</h3>
                             <p>Últimas 20 "palavras" da sua planta</p>
                         </div>
                         <div class="chart-container">
@@ -862,7 +798,7 @@ input:checked + .slider:before {
 
                     <div class="chart-card">
                         <div class="chart-header">
-                            <h3>🎵 Espectro da Voz Vegetal</h3>
+                            <h3>Espectro da Voz Vegetal</h3>
                             <p>Análise das frequências de comunicação</p>
                         </div>
                         <div class="chart-container">
@@ -874,7 +810,7 @@ input:checked + .slider:before {
                 <!-- Frequency Bands List -->
                 <div class="bands-card">
                     <div class="bands-header">
-                        <h3>🔊 Análise Detalhada da Comunicação Vegetal</h3>
+                        <h3>Análise Detalhada da Comunicação Vegetal</h3>
                         <p>Decodificação das diferentes "tonalidades" da sua planta</p>
                     </div>
                     <div class="bands-grid" id="bands-list">
@@ -886,7 +822,7 @@ input:checked + .slider:before {
             <!-- Plants Tab -->
             <div id="plants-tab" class="tab-content">
                 <div class="tab-header">
-                    <h2>🌱 Minhas Plantas</h2>
+                    <h2>Minhas Plantas</h2>
                     <p>Gerencie suas plantas conectadas</p>
                 </div>
                 <div class="plants-grid" id="plants-grid">
@@ -897,7 +833,7 @@ input:checked + .slider:before {
             <!-- Analytics Tab -->
             <div id="analytics-tab" class="tab-content">
                 <div class="tab-header">
-                    <h2>📈 Analytics Avançado</h2>
+                    <h2>Analytics Avançado</h2>
                     <p>Análises profundas da comunicação vegetal</p>
                 </div>
                 <div class="analytics-content" id="analytics-content">
@@ -908,7 +844,7 @@ input:checked + .slider:before {
             <!-- Settings Tab -->
             <div id="settings-tab" class="tab-content">
                 <div class="tab-header">
-                    <h2>⚙️ Configurações</h2>
+                    <h2>Configurações</h2>
                     <p>Personalize sua experiência</p>
                 </div>
                 <div class="settings-content">
@@ -941,7 +877,6 @@ input:checked + .slider:before {
             </div>
         </main>
     </div>
-
     <script>
 // Configurações da aplicação
 const CONFIG = {
@@ -1059,7 +994,7 @@ function startDataRefresh() {
 
 function restartDataRefresh() {
     startDataRefresh();
-    console.log(`🔄 Intervalo de atualização alterado para ${appState.refreshRate}ms`);
+    console.log(`Intervalo de atualização alterado para ${appState.refreshRate}ms`);
 }
 
 function loadInitialData() {
@@ -1446,7 +1381,7 @@ function displayAnalytics(analytics) {
         
         <div class="chart-card">
             <div class="chart-header">
-                <h3>📊 Tendências de Comunicação (24h)</h3>
+                <h3>Tendências de Comunicação (24h)</h3>
                 <p>Atividade de comunicação ao longo do dia</p>
             </div>
             <div class="chart-container">
@@ -1456,7 +1391,7 @@ function displayAnalytics(analytics) {
         
         <div class="chart-card">
             <div class="chart-header">
-                <h3>🎯 Distribuição de Frequências</h3>
+                <h3>Distribuição de Frequências</h3>
                 <p>Percentual de comunicações por faixa de frequência</p>
             </div>
             <div class="chart-container">
@@ -1525,7 +1460,7 @@ function checkNotifications(data) {
             
             // Evitar spam de notificações (mínimo 30 segundos entre notificações)
             if (!lastNotification || (now - parseInt(lastNotification)) > 30000) {
-                new Notification('🌱 Sua planta está falando!', {
+                new Notification('Sua planta está falando!', {
                     body: `${data.plant_name} está se comunicando em ${data.dominant_frequency.toFixed(1)} Hz`,
                     icon: '/favicon.ico'
                 });
@@ -1562,41 +1497,86 @@ window.addEventListener('error', function(event) {
 });
 
 // Log de inicialização
-console.log('🌿 Plantas que Falam - JavaScript carregado');
-console.log('📡 API Base URL:', CONFIG.API_BASE_URL);
-console.log('⏱️ Intervalo de atualização:', CONFIG.REFRESH_INTERVAL + 'ms');
+console.log('Plantas que Falam - JavaScript carregado');
+console.log('API Base URL:', CONFIG.API_BASE_URL);
+console.log('Intervalo de atualização:', CONFIG.REFRESH_INTERVAL + 'ms');
 
     </script>
 </body>
 </html>
 )rawliteral";
 
+// Variáveis de controle
+unsigned long lastDisplay = 0;
+const unsigned long displayInterval = 200; 
+
+// Variáveis globais para dados
+double dominantFreq = 0;
+double maxMagnitude = 0;
+double dominantDb = -80;
+int rawSensorValue = 0;
+double sensorVoltage = 0;
+double avgMagnitude = 0;
+
+// Status de conexão
+bool wifiConnected = false;
+int webRequests = 0;
+
+// Histórico
+#define HISTORY_SIZE 20
+double magnitudeHistory[HISTORY_SIZE];
+int historyIndex = 0;
+
+// Bandas de frequência
+struct FrequencyBand {
+  String name;
+  double minFreq;
+  double maxFreq;
+  double magnitude;
+  double magnitudeDb;
+  String color;
+};
+
+FrequencyBand bands[] = {
+  {"Sub Bass", 20, 60, 0, -80, "#22c55e"},
+  {"Bass", 60, 250, 0, -80, "#16a34a"},
+  {"Low Mid", 250, 500, 0, -80, "#15803d"},
+  {"Mid", 500, 2000, 0, -80, "#166534"},
+  {"High Mid", 2000, 4000, 0, -80, "#14532d"},
+  {"Presence", 4000, 6000, 0, -80, "#84cc16"},
+  {"Brilliance", 6000, 20000, 0, -80, "#65a30d"}
+};
+
+const int numBands = sizeof(bands) / sizeof(bands[0]);
+
+// ---------- DECLARAÇÕES ----------
+void showStartupScreen();
+void setupWiFi();
+void setupWebServer();
+void collectSamples();
+void processFFT();
+void analyzeData();
+void updateDisplay();
+void handleRoot();
+void handleAPIData();
+void handleAPIPlants();
+void handleAPIPlantDetails();
+void handleAPIAnalyticsSummary();
+
+// ---------- SETUP ----------
 void setup() {
   Serial.begin(115200);
-  
-  // Inicializar display
   u8g2.begin();
   u8g2.setFont(u8g2_font_6x10_tf);
-  
-  // Configurar pino do sensor
   pinMode(PIEZO_PIN, INPUT);
-  
-  // Inicializar histórico
-  for (int i = 0; i < HISTORY_SIZE; i++) {
-    magnitudeHistory[i] = 0;
-  }
-  
-  // Tela de inicialização
+
+  for (int i = 0; i < HISTORY_SIZE; i++) magnitudeHistory[i] = 0;
+
   showStartupScreen();
-  
-  // Conectar WiFi
   setupWiFi();
-  
-  // Configurar servidor web
   setupWebServer();
-  
+
   Serial.println("=== SISTEMA WEB INICIADO ===");
-  Serial.println("Configurações:");
   Serial.printf("- Pino sensor: GPIO %d\n", PIEZO_PIN);
   Serial.printf("- Frequência amostragem: %d Hz\n", SAMPLING_FREQUENCY);
   if (wifiConnected) {
@@ -1605,32 +1585,26 @@ void setup() {
   Serial.println("============================");
 }
 
+// ---------- LOOP ----------
 void loop() {
-  // Manter servidor web
   server.handleClient();
-  
-  // Ler valor bruto do sensor
+
   rawSensorValue = analogRead(PIEZO_PIN);
   sensorVoltage = (rawSensorValue * 3.3) / 4095.0;
-  
-  // Coletar amostras para FFT
+
   collectSamples();
-  
-  // Processar FFT
   processFFT();
-  
-  // Analisar dados
   analyzeData();
-  
-  // Atualizar display
+
   if (millis() - lastDisplay > displayInterval) {
     updateDisplay();
     lastDisplay = millis();
   }
-  
+
   delay(10);
 }
 
+// ---------- TELAS ----------
 void showStartupScreen() {
   u8g2.clearBuffer();
   u8g2.drawStr(0, 15, "ESP32 Piezo Web");
@@ -1640,70 +1614,48 @@ void showStartupScreen() {
   delay(2000);
 }
 
+// ---------- WIFI ----------
 void setupWiFi() {
-  delay(10);
-  Serial.println();
-  Serial.print("Conectando ao WiFi: ");
-  Serial.println(ssid);
-  
-  // Mostrar status no display
-  u8g2.clearBuffer();
-  u8g2.drawStr(0, 15, "Conectando WiFi...");
-  u8g2.drawStr(0, 30, ssid);
-  u8g2.sendBuffer();
-  
+  Serial.printf("Conectando ao WiFi: %s\n", ssid);
   WiFi.begin(ssid, password);
-  
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
     Serial.print(".");
     attempts++;
   }
-  
+
   if (WiFi.status() == WL_CONNECTED) {
     wifiConnected = true;
-    Serial.println("");
-    Serial.println("WiFi conectado!");
-    Serial.print("Dashboard: http://");
-    Serial.println(WiFi.localIP());
-    
-    // Mostrar sucesso no display
-    u8g2.clearBuffer();
-    u8g2.drawStr(0, 15, "WiFi Conectado!");
-    u8g2.drawStr(0, 30, WiFi.localIP().toString().c_str());
-    u8g2.drawStr(0, 45, "Dashboard ativo!");
-    u8g2.sendBuffer();
-    delay(3000);
+    Serial.println("\nWiFi conectado!");
   } else {
     wifiConnected = false;
-    Serial.println("");
-    Serial.println("Falha na conexão WiFi!");
-    
-    // Mostrar erro no display
-    u8g2.clearBuffer();
-    u8g2.drawStr(0, 15, "WiFi FALHOU!");
-    u8g2.drawStr(0, 30, "Modo offline");
-    u8g2.sendBuffer();
-    delay(2000);
+    Serial.println("\nFalha na conexão WiFi!");
   }
 }
 
+// ---------- WEB SERVER ----------
 void setupWebServer() {
-  // Página principal
   server.on("/", handleRoot);
-  
-  // API para dados JSON
   server.on("/api/sensor/data", handleAPIData);
   server.on("/api/sensor/plants", handleAPIPlants);
-  server.onRegex("\\/api\\/sensor\\/plants\\/(\\d+)", handleAPIPlantDetails);
   server.on("/api/sensor/analytics/summary", handleAPIAnalyticsSummary);
-  
-  // Iniciar servidor
+
+  // Para /api/sensor/plants/{id}
+  server.onNotFound([]() {
+    String path = server.uri();
+    if (path.startsWith("/api/sensor/plants/")) {
+      handleAPIPlantDetails();
+    } else {
+      server.send(404, "text/plain", "Not Found");
+    }
+  });
+
   server.begin();
   Serial.println("Servidor web iniciado na porta 80");
 }
 
+// ---------- HANDLERS ----------
 void handleRoot() {
   webRequests++;
   server.send(200, "text/html", HTML_CONTENT);
@@ -1711,7 +1663,6 @@ void handleRoot() {
 
 String getJSONData() {
   DynamicJsonDocument doc(2048);
-  
   doc["timestamp"] = millis();
   doc["raw_value"] = rawSensorValue;
   doc["voltage"] = sensorVoltage;
@@ -1719,78 +1670,27 @@ String getJSONData() {
   doc["dominant_magnitude"] = maxMagnitude;
   doc["dominant_magnitude_db"] = dominantDb;
   doc["average_magnitude"] = avgMagnitude;
-  
-  // Histórico para gráfico
-  JsonArray historyArray = doc.createNestedArray("history");
-  for (int i = 0; i < HISTORY_SIZE; i++) {
-    int idx = (historyIndex + i) % HISTORY_SIZE;
-    historyArray.add(magnitudeHistory[idx]);
-  }
-  
-  // Bandas de frequência
-  JsonArray bandsArray = doc.createNestedArray("bands");
-  for (int i = 0; i < numBands; i++) {
-    JsonObject band = bandsArray.createNestedObject();
-    band["name"] = bands[i].name;
-    band["min_freq"] = bands[i].minFreq;
-    band["max_freq"] = bands[i].maxFreq;
-    band["magnitude"] = bands[i].magnitude;
-    band["magnitude_db"] = bands[i].magnitudeDb;
-    band["color"] = bands[i].color;
-  }
-  
-  // Dados simulados para o frontend (status, plant_name, plant_type, location)
-  doc["status"] = (maxMagnitude > 0.05) ? "online" : "offline";
-  doc["plant_name"] = "Samambaia Falante";
-  doc["plant_type"] = "Nephrolepis exaltata";
-  doc["location"] = "Sala de Estar";
-  doc["last_communication"] = "2025-09-01 12:00:00"; // Data estática para simulação
-
-  String jsonString;
-  serializeJson(doc, jsonString);
-  return jsonString;
+  return doc.as<String>();
 }
 
 void handleAPIData() {
-  String json = getJSONData();
   server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.send(200, "application/json", json);
+  server.send(200, "application/json", getJSONData());
 }
 
 void handleAPIPlants() {
   DynamicJsonDocument doc(1024);
   JsonArray plantsArray = doc.createNestedArray("plants");
 
-  // Simular dados de plantas
   JsonObject plant1 = plantsArray.createNestedObject();
   plant1["id"] = 1;
   plant1["name"] = "Samambaia Falante";
-  plant1["type"] = "Nephrolepis exaltata";
-  plant1["location"] = "Sala de Estar";
   plant1["status"] = "online";
-  plant1["last_communication"] = "2025-09-01 12:00:00";
-  plant1["communication_frequency"] = 450.5;
-  plant1["health_score"] = 92;
 
   JsonObject plant2 = plantsArray.createNestedObject();
   plant2["id"] = 2;
   plant2["name"] = "Violeta Sussurrante";
-  plant2["type"] = "Saintpaulia ionantha";
-  plant2["location"] = "Quarto";
   plant2["status"] = "offline";
-  plant2["last_communication"] = "2024-01-20 14:30:22";
-  plant2["communication_frequency"] = 0.0;
-  plant2["health_score"] = 75;
-
-  JsonObject plant3 = plantsArray.createNestedObject();
-  plant3["id"] = 3;
-  plant3["name"] = "Cacto Tagarela";
-  plant3["type"] = "Echinopsis pachanoi";
-  plant3["location"] = "Varanda";
-  plant3["status"] = "online";
-  plant3["last_communication"] = "2025-09-01 12:00:00";
-  plant3["communication_frequency"] = 180.2;
-  plant3["health_score"] = 88;
 
   String jsonString;
   serializeJson(doc, jsonString);
@@ -1799,98 +1699,42 @@ void handleAPIPlants() {
 }
 
 void handleAPIPlantDetails() {
-  // Extrair ID da URL (ex: /api/sensor/plants/1)
   String path = server.uri();
   int lastSlash = path.lastIndexOf('/');
-  String idStr = path.substring(lastSlash + 1);
-  int plantId = idStr.toInt();
+  int plantId = path.substring(lastSlash + 1).toInt();
 
-  DynamicJsonDocument doc(1024);
-  // Simular dados específicos da planta
-  // Por simplicidade, retorna os mesmos dados do sensor principal com o ID da planta
+  DynamicJsonDocument doc(512);
   doc["plant_id"] = plantId;
   doc["raw_value"] = rawSensorValue;
-  doc["voltage"] = sensorVoltage;
   doc["dominant_frequency"] = dominantFreq;
-  doc["dominant_magnitude"] = maxMagnitude;
   doc["status"] = (maxMagnitude > 0.05) ? "online" : "offline";
-
-  if (plantId == 1) {
-    doc["plant_name"] = "Samambaia Falante";
-    doc["plant_type"] = "Nephrolepis exaltata";
-    doc["location"] = "Sala de Estar";
-  } else if (plantId == 2) {
-    doc["plant_name"] = "Violeta Sussurrante";
-    doc["plant_type"] = "Saintpaulia ionantha";
-    doc["location"] = "Quarto";
-  } else if (plantId == 3) {
-    doc["plant_name"] = "Cacto Tagarela";
-    doc["plant_type"] = "Echinopsis pachanoi";
-    doc["location"] = "Varanda";
-  } else {
-    doc["plant_name"] = "Planta Desconhecida";
-    doc["plant_type"] = "Tipo Desconhecido";
-    doc["location"] = "Desconhecido";
-  }
 
   String jsonString;
   serializeJson(doc, jsonString);
-  server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "application/json", jsonString);
 }
 
 void handleAPIAnalyticsSummary() {
-  DynamicJsonDocument doc(1024);
-
-  doc["total_plants"] = 3;
-  doc["active_plants"] = 2;
-  doc["total_communications_today"] = 350; // Valor fixo para simulação
-  doc["average_frequency"] = 520.0; // Valor fixo para simulação
-  doc["most_active_plant"] = "Samambaia Falante";
-
-  JsonArray trendsArray = doc.createNestedArray("communication_trends");
-  for (int i = 0; i < 24; i++) {
-    JsonObject trend = trendsArray.createNestedObject();
-    char hourStr[6];
-    sprintf(hourStr, "%02d:00", i);
-    trend["hour"] = hourStr;
-    trend["count"] = random(5, 25);
-  }
-
-  JsonArray distributionArray = doc.createNestedArray("frequency_distribution");
-  JsonObject dist1 = distributionArray.createNestedObject();
-  dist1["range"] = "0-100 Hz";
-  dist1["percentage"] = 25;
-  JsonObject dist2 = distributionArray.createNestedObject();
-  dist2["range"] = "100-500 Hz";
-  dist2["percentage"] = 35;
-  JsonObject dist3 = distributionArray.createNestedObject();
-  dist3["range"] = "500-1000 Hz";
-  dist3["percentage"] = 20;
-  JsonObject dist4 = distributionArray.createNestedObject();
-  dist4["range"] = "1000+ Hz";
-  dist4["percentage"] = 20;
+  DynamicJsonDocument doc(512);
+  doc["total_plants"] = 2;
+  doc["active_plants"] = 1;
+  doc["average_frequency"] = 450.0;
 
   String jsonString;
   serializeJson(doc, jsonString);
-  server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "application/json", jsonString);
 }
 
+// ---------- PROCESSAMENTO ----------
 void collectSamples() {
   unsigned long samplingPeriod = 1000000L / SAMPLING_FREQUENCY;
-  
   for (int i = 0; i < SAMPLES; i++) {
     unsigned long startTime = micros();
-    
     int sensorValue = analogRead(PIEZO_PIN);
     double voltage = (sensorValue * 3.3) / 4095.0;
     vReal[i] = voltage - 1.65;
     vImag[i] = 0.0;
-    
-    while (micros() - startTime < samplingPeriod) {
-      // Aguardar
-    }
+    while (micros() - startTime < samplingPeriod);
   }
 }
 
@@ -1902,129 +1746,29 @@ void processFFT() {
 
 void analyzeData() {
   double frequencyResolution = (double)SAMPLING_FREQUENCY / SAMPLES;
-  
-  maxMagnitude = 0;
-  dominantFreq = 0;
-  avgMagnitude = 0;
-  
-  for (int b = 0; b < numBands; b++) {
-    bands[b].magnitude = 0;
-    bands[b].magnitudeDb = -80;
-  }
-  
-  double totalMagnitude = 0;
-  int validSamples = 0;
-  
+  maxMagnitude = 0; dominantFreq = 0;
+
   for (int i = 1; i < (SAMPLES / 2); i++) {
     double frequency = i * frequencyResolution;
     double magnitude = vReal[i];
-    
-    totalMagnitude += magnitude;
-    validSamples++;
-    
     if (magnitude > maxMagnitude) {
       maxMagnitude = magnitude;
       dominantFreq = frequency;
     }
-    
-    for (int b = 0; b < numBands; b++) {
-      if (frequency >= bands[b].minFreq && frequency < bands[b].maxFreq) {
-        if (magnitude > bands[b].magnitude) {
-          bands[b].magnitude = magnitude;
-          bands[b].magnitudeDb = 20 * log10(magnitude + 0.001);
-        }
-        break;
-      }
-    }
   }
-  
-  avgMagnitude = totalMagnitude / validSamples;
   dominantDb = 20 * log10(maxMagnitude + 0.001);
-  
-  // Atualizar histórico de magnitude
-  for (int i = HISTORY_SIZE - 1; i > 0; i--) {
-    magnitudeHistory[i] = magnitudeHistory[i-1];
-  }
-  magnitudeHistory[0] = maxMagnitude;
 }
 
 void updateDisplay() {
   u8g2.clearBuffer();
-  
-  // Status de conexão e requests
-  u8g2.setFont(u8g2_font_5x7_tf);
-  String statusStr = "";
-  if (wifiConnected) {
-    statusStr += "WiFi:OK ";
-  } else {
-    statusStr += "WiFi:-- ";
-  }
-  statusStr += "Req:" + String(webRequests);
-  u8g2.drawStr(0, 8, statusStr.c_str());
-  
-  // Valor bruto do sensor
-  u8g2.setFont(u8g2_font_6x10_tf);
-  char rawStr[32];
-  sprintf(rawStr, "RAW: %d (%.2fV)", rawSensorValue, sensorVoltage);
-  u8g2.drawStr(0, 20, rawStr);
-  
-  // Frequência dominante
-  char freqStr[32];
-  if (dominantFreq < 1000) {
-    sprintf(freqStr, "FREQ: %.1f Hz", dominantFreq);
-  } else {
-    sprintf(freqStr, "FREQ: %.2f kHz", dominantFreq / 1000.0);
-  }
-  u8g2.drawStr(0, 32, freqStr);
-  
-  // Magnitude
-  char magStr[32];
-  sprintf(magStr, "MAG: %.3f (%.1fdB)", maxMagnitude, dominantDb);
-  u8g2.drawStr(0, 44, magStr);
-  
-  // Status de atividade
-  char statusActivityStr[32];
-  if (maxMagnitude > 0.01) {
-    sprintf(statusActivityStr, "STATUS: ATIVO!");
-  } else if (maxMagnitude > 0.001) {
-    sprintf(statusActivityStr, "STATUS: baixo");
-  } else {
-    sprintf(statusActivityStr, "STATUS: silencio");
-  }
-  u8g2.drawStr(0, 56, statusActivityStr);
-  
-  // Gráfico simples no lado direito
-  int graphX = 90;
-  int graphY = 64;
-  int graphW = 38;
-  int graphH = 30;
-  
-  double maxHist = 0.001;
-  for (int i = 0; i < HISTORY_SIZE; i++) {
-    if (magnitudeHistory[i] > maxHist) {
-      maxHist = magnitudeHistory[i];
-    }
-  }
-  
-  for (int i = 0; i < HISTORY_SIZE - 1; i++) {
-    int x1 = graphX + (i * graphW) / HISTORY_SIZE;
-    int x2 = graphX + ((i + 1) * graphW) / HISTORY_SIZE;
-    
-    int y1 = graphY - (magnitudeHistory[i] * graphH) / maxHist;
-    int y2 = graphY - (magnitudeHistory[(i + 1) % HISTORY_SIZE] * graphH) / maxHist;
-    
-    if (y1 > graphY) y1 = graphY;
-    if (y2 > graphY) y2 = graphY;
-    if (y1 < graphY - graphH) y1 = graphY - graphH;
-    if (y2 < graphY - graphH) y2 = graphY - graphH;
-    
-    u8g2.drawLine(x1, y1, x2, y2);
-  }
-  
-  u8g2.drawFrame(graphX - 1, graphY - graphH - 1, graphW + 2, graphH + 2);
-  
+  char line[32];
+  sprintf(line, "RAW:%d", rawSensorValue);
+  u8g2.drawStr(0, 10, line);
+  sprintf(line, "FREQ:%.1fHz", dominantFreq);
+  u8g2.drawStr(0, 25, line);
+  sprintf(line, "MAG:%.3f", maxMagnitude);
+  u8g2.drawStr(0, 40, line);
+  sprintf(line, "DB:%.1f", dominantDb);
+  u8g2.drawStr(0, 55, line);
   u8g2.sendBuffer();
 }
-
-
-
