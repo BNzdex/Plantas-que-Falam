@@ -17,6 +17,9 @@ const char* password = "12345678";
 #define SAMPLING_FREQUENCY 10000 
 #define PIEZO_PIN 34            
 
+// NOVO: Configuração do pino da bateria
+#define BATTERY_PIN 35  // Pino analógico para leitura da bateria
+
 // Variáveis FFT
 double vReal[SAMPLES];
 double vImag[SAMPLES];
@@ -36,6 +39,11 @@ double dominantDb = -80;
 int rawSensorValue = 0;
 double sensorVoltage = 0;
 double avgMagnitude = 0;
+
+// NOVO: Variáveis da bateria
+int batteryRawValue = 0;
+double batteryVoltage = 0;
+double batteryPercentage = 0;
 
 // Status de conexão
 bool wifiConnected = false;
@@ -105,8 +113,9 @@ void setup() {
   u8g2.begin();
   u8g2.setFont(u8g2_font_6x10_tf);
   
-  // Configurar pino do sensor
+  // Configurar pinos dos sensores
   pinMode(PIEZO_PIN, INPUT);
+  pinMode(BATTERY_PIN, INPUT);  // NOVO: Configurar pino da bateria
   
   // Inicializar histórico
   for (int i = 0; i < HISTORY_SIZE; i++) {
@@ -130,6 +139,7 @@ void setup() {
   
   Serial.println("=== SISTEMA WEB INICIADO ===");
   Serial.printf("- Pino sensor: GPIO %d\n", PIEZO_PIN);
+  Serial.printf("- Pino bateria: GPIO %d\n", BATTERY_PIN);  // NOVO
   Serial.printf("- Frequência amostragem: %d Hz\n", SAMPLING_FREQUENCY);
   if (wifiConnected) {
     Serial.printf("- Dashboard: http://%s\n", WiFi.localIP().toString().c_str());
@@ -144,6 +154,9 @@ void loop() {
   // Ler valor bruto do sensor
   rawSensorValue = analogRead(PIEZO_PIN);
   sensorVoltage = (rawSensorValue * 3.3) / 4095.0;
+  
+  // NOVO: Ler valor da bateria
+  readBatteryLevel();
   
   // Coletar amostras para FFT
   collectSamples();
@@ -164,6 +177,22 @@ void loop() {
   }
   
   delay(10);
+}
+
+// NOVO: Função para ler nível da bateria
+void readBatteryLevel() {
+  batteryRawValue = analogRead(BATTERY_PIN);
+  batteryVoltage = (batteryRawValue * 3.3) / 4095.0;
+  
+  // Converter voltagem para porcentagem (assumindo bateria Li-ion 3.7V)
+  // Voltagem mínima: 3.0V (0%), Voltagem máxima: 4.2V (100%)
+  if (batteryVoltage >= 4.2) {
+    batteryPercentage = 100.0;
+  } else if (batteryVoltage <= 3.0) {
+    batteryPercentage = 0.0;
+  } else {
+    batteryPercentage = ((batteryVoltage - 3.0) / (4.2 - 3.0)) * 100.0;
+  }
 }
 
 void initializeAnalysisData() {
@@ -303,6 +332,11 @@ void handleAPIData() {
   doc["dominant_magnitude_db"] = dominantDb;
   doc["average_magnitude"] = avgMagnitude;
   
+  // NOVO: Adicionar dados da bateria
+  doc["battery_raw"] = batteryRawValue;
+  doc["battery_voltage"] = batteryVoltage;
+  doc["battery_percentage"] = batteryPercentage;
+  
   // Status baseado na magnitude
   if (maxMagnitude > config.sensitivityThreshold) {
     doc["status"] = "online";
@@ -361,6 +395,10 @@ void handleAPIPlants() {
   plant1["peak_frequency"] = stats.maxFreqRecorded;
   plant1["sensor_voltage"] = sensorVoltage;
   
+  // NOVO: Adicionar dados da bateria na resposta das plantas
+  plant1["battery_percentage"] = batteryPercentage;
+  plant1["battery_voltage"] = batteryVoltage;
+  
   String jsonString;
   serializeJson(doc, jsonString);
   
@@ -388,6 +426,10 @@ void handleAPIPlantDetails() {
     doc["total_communications"] = stats.totalCommunications;
     doc["peak_magnitude"] = stats.peakMagnitude;
     doc["session_avg_freq"] = stats.avgSessionFreq;
+    
+    // NOVO: Adicionar dados da bateria
+    doc["battery_percentage"] = batteryPercentage;
+    doc["battery_voltage"] = batteryVoltage;
   } else {
     doc["error"] = "Planta não encontrada ou sensor não conectado";
   }
@@ -500,6 +542,7 @@ void handleAPIConfigGet() {
   doc["plant_type"] = config.plantType;
   doc["wifi_ssid"] = ssid;
   doc["sensor_pin"] = PIEZO_PIN;
+  doc["battery_pin"] = BATTERY_PIN;  // NOVO
   doc["system_uptime"] = millis();
   doc["memory_free"] = ESP.getFreeHeap();
   
@@ -627,11 +670,16 @@ void updateDisplay() {
   statusStr += "Req:" + String(webRequests);
   u8g2.drawStr(0, 8, statusStr.c_str());
   
+  // NOVO: Mostrar bateria no display
+  char batteryStr[32];
+  sprintf(batteryStr, "BAT: %.1f%% (%.2fV)", batteryPercentage, batteryVoltage);
+  u8g2.drawStr(0, 18, batteryStr);
+  
   // Valor bruto do sensor
   u8g2.setFont(u8g2_font_6x10_tf);
   char rawStr[32];
   sprintf(rawStr, "RAW: %d (%.2fV)", rawSensorValue, sensorVoltage);
-  u8g2.drawStr(0, 20, rawStr);
+  u8g2.drawStr(0, 30, rawStr);
   
   // Frequência dominante
   char freqStr[32];
@@ -640,23 +688,12 @@ void updateDisplay() {
   } else {
     sprintf(freqStr, "FREQ: %.2f kHz", dominantFreq / 1000.0);
   }
-  u8g2.drawStr(0, 32, freqStr);
+  u8g2.drawStr(0, 42, freqStr);
   
   // Magnitude
   char magStr[32];
   sprintf(magStr, "MAG: %.3f (%.1fdB)", maxMagnitude, dominantDb);
-  u8g2.drawStr(0, 44, magStr);
-  
-  // Status de atividade
-  char statusActivityStr[32];
-  if (maxMagnitude > config.sensitivityThreshold) {
-    sprintf(statusActivityStr, "STATUS: PLANTA ATIVA!");
-  } else if (maxMagnitude > 0.001) {
-    sprintf(statusActivityStr, "STATUS: sinal baixo");
-  } else {
-    sprintf(statusActivityStr, "STATUS: silencio");
-  }
-  u8g2.drawStr(0, 56, statusActivityStr);
+  u8g2.drawStr(0, 54, magStr);
   
   u8g2.sendBuffer();
 }
@@ -793,6 +830,30 @@ String getHTMLPage() {
             color: #22c55e;
         }
         
+        /* NOVO: Alerta de magnitude baixa */
+        .magnitude-alert {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid #ef4444;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #ef4444;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+        
+        .magnitude-alert.show {
+            display: block;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -828,6 +889,28 @@ String getHTMLPage() {
             opacity: 0.7;
         }
         
+        /* NOVO: Estilo especial para bateria */
+        .battery-card {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .battery-indicator {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .battery-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444 0%, #f59e0b 30%, #22c55e 60%);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
         .chart-container {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
@@ -838,8 +921,23 @@ String getHTMLPage() {
         }
         
         .chart-container h3 {
-            margin-bottom: 20px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .chart-value {
+            font-size: 2rem;
+            font-weight: bold;
             color: #22c55e;
+            margin-bottom: 5px;
+        }
+        
+        .chart-unit {
+            font-size: 0.9rem;
+            opacity: 0.7;
         }
         
         .chart-wrapper {
@@ -1209,6 +1307,11 @@ String getHTMLPage() {
                 <p>Monitoramento em tempo real da comunicação das plantas</p>
             </div>
             
+            <!-- NOVO: Alerta de magnitude baixa -->
+            <div id="magnitude-alert" class="magnitude-alert">
+                ⚠️ ALERTA: Magnitude da Comunicação abaixo de 59! Verifique a conexão da planta.
+            </div>
+            
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>Frequência Dominante</h3>
@@ -1232,6 +1335,19 @@ String getHTMLPage() {
                     <h3>Voltagem</h3>
                     <div class="stat-value" id="voltage-value">0.00</div>
                     <div class="stat-unit">V</div>
+                </div>
+                
+                <!-- NOVO: Card da bateria -->
+                <div class="stat-card battery-card">
+                    <h3>Bateria ESP</h3>
+                    <div class="stat-value" id="battery-percentage">0</div>
+                    <div class="stat-unit">%</div>
+                    <div class="battery-indicator">
+                        <div class="battery-fill" id="battery-fill"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">
+                        <span id="battery-voltage">0.00V</span>
+                    </div>
                 </div>
             </div>
             
@@ -1357,7 +1473,8 @@ String getHTMLPage() {
         const CONFIG = {
             API_BASE_URL: '/api',
             REFRESH_INTERVAL: 1000,
-            CHART_MAX_POINTS: 20
+            CHART_MAX_POINTS: 20,
+            MAGNITUDE_ALERT_THRESHOLD: -59  // Limite para alerta de magnitude
         };
 
         let appState = {
@@ -1459,16 +1576,45 @@ String getHTMLPage() {
             updateElement('raw-value', data.raw_value || '0');
             updateElement('voltage-value', data.voltage ? data.voltage.toFixed(3) : '0.00');
             
-            // Atualizar gráfico
-            if (data.history) {
-                updateMagnitudeChart(data.history);
+            // NOVO: Atualizar dados da bateria
+            if (data.battery_percentage !== undefined) {
+                updateElement('battery-percentage', Math.round(data.battery_percentage));
+                updateElement('battery-voltage', data.battery_voltage ? data.battery_voltage.toFixed(2) : '0.00');
+                
+                // Atualizar indicador visual da bateria
+                const batteryFill = document.getElementById('battery-fill');
+                if (batteryFill) {
+                    batteryFill.style.width = `${data.battery_percentage}%`;
+                }
             }
             
-            // Atualizar bandas
-            if (data.bands) {
-                updateBands(data.bands);
+        // NOVO: Verificar alerta de magnitude
+        checkMagnitudeAlert(data.dominant_magnitude_db || -100); // Passa a magnitude em dB para a função de alerta
+        
+        // Atualizar gráfico
+        if (data.history) {
+            updateMagnitudeChart(data.history);
+        }
+        
+        // Atualizar bandas
+        if (data.bands) {
+            updateBands(data.bands);
+        }
+    }
+
+    // FUNÇÃO CORRIGIDA: A lógica agora compara corretamente o valor com o novo threshold de 59.
+    function checkMagnitudeAlert(magnitudeDb) {
+        const alertElement = document.getElementById('magnitude-alert');
+        if (alertElement) {
+            // Se a magnitude for menor que 59, o alerta será exibido
+            if (magnitudeDb < CONFIG.MAGNITUDE_ALERT_THRESHOLD) {
+                alertElement.classList.add('show');
+            } else {
+                alertElement.classList.remove('show');
             }
         }
+    }
+
 
         function updateElement(id, value) {
             const element = document.getElementById(id);
@@ -1484,17 +1630,18 @@ String getHTMLPage() {
             if (statusDot && statusText) {
                 statusDot.className = `status-dot ${status}`;
                 
-                switch (status) {
+                switch(status) {
                     case 'online':
-                        statusText.textContent = 'Online';
+                        statusText.textContent = 'Conectado';
                         appState.isConnected = true;
                         break;
                     case 'offline':
-                        statusText.textContent = 'Offline';
+                        statusText.textContent = 'Desconectado';
                         appState.isConnected = false;
                         break;
                     case 'connecting':
                         statusText.textContent = 'Conectando...';
+                        appState.isConnected = false;
                         break;
                 }
             }
@@ -1648,6 +1795,10 @@ String getHTMLPage() {
                             <div class="detail-value">${plant.last_communication}</div>
                         </div>
                         <div class="detail-item">
+                            <div class="detail-label">Bateria</div>
+                            <div class="detail-value">${plant.battery_percentage ? Math.round(plant.battery_percentage) + '%' : 'N/A'}</div>
+                        </div>
+                    </div>
                 `;
                 
                 container.appendChild(plantCard);
@@ -1734,6 +1885,10 @@ String getHTMLPage() {
                     },
                     scales: {
                         x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        },
+                        y: {
                             grid: { color: 'rgba(255, 255, 255, 0.1)' },
                             ticks: { color: 'rgba(255, 255, 255, 0.7)' }
                         }
@@ -1873,15 +2028,19 @@ String getHTMLPage() {
                         <span class="info-value">GPIO ${config.sensor_pin}</span>
                     </div>
                     <div class="info-item">
+                        <span class="info-label">Pino da Bateria:</span>
+                        <span class="info-value">GPIO ${config.battery_pin || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
                         <span class="info-label">Freq. Amostragem:</span>
                         <span class="info-value">${config.sampling_frequency} Hz</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Amostras FFT:</span>
+                        <span class="info-label">Amostras:</span>
                         <span class="info-value">${config.samples}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Tempo Ativo:</span>
+                        <span class="info-label">Uptime:</span>
                         <span class="info-value">${Math.floor(config.system_uptime / 60000)} min</span>
                     </div>
                     <div class="info-item">
@@ -1894,14 +2053,14 @@ String getHTMLPage() {
 
         function saveSettings() {
             const settings = {
-                plant_name: document.getElementById('plant-name').value,
-                plant_type: document.getElementById('plant-type').value,
-                sensitivity_threshold: parseFloat(document.getElementById('sensitivity-threshold').value),
-                refresh_rate: parseInt(document.getElementById('refresh-rate').value),
-                auto_detection: document.getElementById('auto-detection').checked,
-                alerts_enabled: document.getElementById('alerts-enabled').checked
+                plant_name: document.getElementById('plant-name')?.value || appState.settings.plant_name,
+                plant_type: document.getElementById('plant-type')?.value || appState.settings.plant_type,
+                sensitivity_threshold: parseFloat(document.getElementById('sensitivity-threshold')?.value) || appState.settings.sensitivity_threshold,
+                refresh_rate: parseInt(document.getElementById('refresh-rate')?.value) || appState.settings.refresh_rate,
+                auto_detection: document.getElementById('auto-detection')?.checked || appState.settings.auto_detection,
+                alerts_enabled: document.getElementById('alerts-enabled')?.checked || appState.settings.alerts_enabled
             };
-            
+
             fetch(`${CONFIG.API_BASE_URL}/config`, {
                 method: 'POST',
                 headers: {
@@ -1911,50 +2070,36 @@ String getHTMLPage() {
             })
             .then(response => response.json())
             .then(result => {
-                if (result.status === 'success') {
-                    alert('Configurações salvas com sucesso!');
-                    
-                    // Atualizar intervalo de refresh se mudou
-                    if (settings.refresh_rate !== CONFIG.REFRESH_INTERVAL) {
-                        CONFIG.REFRESH_INTERVAL = settings.refresh_rate;
-                        startDataRefresh();
-                    }
-                } else {
-                    alert('Erro ao salvar configurações: ' + result.message);
+                console.log('Configurações salvas:', result);
+                alert('Configurações salvas com sucesso!');
+                
+                // Atualizar intervalo de refresh se mudou
+                if (settings.refresh_rate !== CONFIG.REFRESH_INTERVAL) {
+                    CONFIG.REFRESH_INTERVAL = settings.refresh_rate;
+                    startDataRefresh();
                 }
             })
             .catch(error => {
                 console.error('Erro ao salvar configurações:', error);
-                alert('Erro ao salvar configurações');
+                alert('Erro ao salvar configurações!');
             });
         }
 
         function resetSettings() {
             if (confirm('Tem certeza que deseja restaurar as configurações padrão?')) {
-                const defaultSettings = {
-                    plant_name: 'Cafesal 1',
-                    plant_type: 'Coffea arabica',
-                    sensitivity_threshold: 0.001,
-                    refresh_rate: 1000,
-                    auto_detection: true,
-                    alerts_enabled: true
-                };
-                
-                populateSettingsForm(defaultSettings);
-                saveSettings();
+                location.reload();
             }
         }
 
-        // Função para exportar dados
         function exportData() {
             const data = {
                 timestamp: new Date().toISOString(),
                 settings: appState.settings,
-                current_data: {
-                    dominant_frequency: document.getElementById('dominant-freq').textContent,
-                    signal_magnitude: document.getElementById('signal-magnitude').textContent,
-                    raw_value: document.getElementById('raw-value').textContent,
-                    voltage: document.getElementById('voltage-value').textContent
+                charts_data: {
+                    magnitude: appState.charts.magnitude?.data,
+                    communications: appState.charts.communications?.data,
+                    frequencyDist: appState.charts.frequencyDist?.data,
+                    bandsAnalysis: appState.charts.bandsAnalysis?.data
                 }
             };
             
@@ -1969,20 +2114,7 @@ String getHTMLPage() {
             URL.revokeObjectURL(url);
         }
 
-        // Função para reiniciar sistema
-        function restartSystem() {
-            if (confirm('Tem certeza que deseja reiniciar o sistema?')) {
-                fetch('/api/system/restart', { method: 'POST' })
-                    .then(() => {
-                        alert('Sistema reiniciando... Aguarde alguns segundos e recarregue a página.');
-                    })
-                    .catch(error => {
-                        console.error('Erro ao reiniciar:', error);
-                    });
-            }
-        }
-
-        // Event listeners para atalhos de teclado
+        // Atalhos de teclado
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey || e.metaKey) {
                 switch(e.key) {
@@ -2052,4 +2184,3 @@ String getHTMLPage() {
 </html>
 )rawliteral";
 }
- 
