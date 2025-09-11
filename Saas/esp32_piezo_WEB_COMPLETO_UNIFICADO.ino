@@ -1294,7 +1294,7 @@ String getHTMLPage() {
             
             <!-- NOVO: Alerta de magnitude baixa -->
             <div id="magnitude-alert" class="magnitude-alert">
-                ⚠️ ALERTA: Magnitude da Comunicação abaixo de 80! Verifique a conexão da planta.
+                ⚠️ ALERTA: Magnitude da Comunicação instável! Verifique a conexão da planta.
             </div>
             
             <div class="stats-grid">
