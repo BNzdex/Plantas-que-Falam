@@ -62,8 +62,8 @@ struct SystemConfig {
   bool autoDetection = true;
   float sensitivityThreshold = 0.001;
   bool alertsEnabled = true;
-  String plantName = "Samambaia Principal";
-  String plantType = "Nephrolepis exaltata";
+  String plantName = "Cafesal 01";
+  String plantType = "Coffea arábica";
 } config;
 
 // Dados estatísticos
@@ -2168,4 +2168,3 @@ String getHTMLPage() {
 </html>
 )rawliteral";
 }
-
