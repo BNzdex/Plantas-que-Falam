@@ -3,186 +3,1464 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plantas que Falam - Dashboard SaaS</title>
+    <title>Plantas que Falam - Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f4c3a 0%, #2d5a27 50%, #1a472a 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            z-index: 1000;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            color: #22c55e;
+        }
+        
+        .logo p {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        .nav-menu {
+            list-style: none;
+        }
+        
+        .nav-item {
+            margin-bottom: 10px;
+        }
+        
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: left;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        
+        .nav-btn .icon {
+            margin-right: 12px;
+            font-size: 1.2rem;
+        }
+        
+        .connection-status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-dot.online { background: #22c55e; }
+        .status-dot.offline { background: #ef4444; }
+        .status-dot.connecting { background: #f59e0b; }
+        
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+        }
+        
+        .header h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #22c55e;
+        }
+        
+        /* NOVO: Alerta de magnitude baixa */
+        .magnitude-alert {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid #ef4444;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #ef4444;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+        
+        .magnitude-alert.show {
+            display: block;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-card h3 {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #22c55e;
+            margin-bottom: 5px;
+        }
+        
+        .stat-unit {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        /* NOVO: Estilo especial para bateria */
+        .battery-card {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .battery-indicator {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .battery-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444 0%, #f59e0b 30%, #22c55e 60%);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #22c55e;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+        
+        .bands-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .band-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .band-name {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: #22c55e;
+        }
+        
+        .band-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .band-db {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.7;
+        }
+        
+        /* Estilos para Plantas */
+        .plants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .plant-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .plant-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .plant-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .plant-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #22c55e;
+            margin-bottom: 5px;
+        }
+        
+        .plant-type {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            font-style: italic;
+        }
+        
+        .plant-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-online {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid #22c55e;
+        }
+        
+        .status-offline {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+        
+        .status-maintenance {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid #f59e0b;
+        }
+        
+        .plant-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .detail-item {
+            text-align: center;
+        }
+        
+        .detail-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #22c55e;
+        }
+        
+        /* Estilos para Análises */
+        .analysis-section {
+            margin-bottom: 40px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .metric-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #22c55e;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        /* Estilos para Configurações */
+        .config-section {
+            margin-bottom: 30px;
+        }
+        
+        .config-section h3 {
+            color: #22c55e;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+       .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #22c55e;
+            font-weight: 500;
+        }
+        .form-select {
+            width: 100%;              
+            padding: 10px 12px;        
+            font-size: 14px;          
+            border: 1px solid #ccc;    
+            border-radius: 8px;       
+            background-color: #fff;    
+            color: #333;              
+            appearance: none;          
+            outline: none;             
+            transition: border-color 0.3s, box-shadow 0.3s; 
+        }
+
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+        }
+        
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .form-checkbox input {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: #22c55e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #16a34a;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .system-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-label {
+            opacity: 0.7;
+        }
+        
+        .info-value {
+            color: #22c55e;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            
+            .stats-grid, .plants-grid, .form-grid, .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .plant-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="logo">
-                    <span class="logo-icon"></span>
-                    <h1>Plantas que Falam</h1>
-                </div>
-                <nav class="nav">
-                    <button class="nav-btn active" data-tab="dashboard">
-                        Dashboard
-                    </button>
-                    <button class="nav-btn" data-tab="plants">
-                        Plantas
-                    </button>
-                    <button class="nav-btn" data-tab="analytics">
-                        Analises
-                    </button>
-                    <button class="nav-btn" data-tab="settings">
-                        Configurações
-                    </button>
-                </nav>
-                <div class="status-indicator">
-                    <span class="status-dot" id="status-dot"></span>
-                    <span id="connection-status">Conectando...</span>
-                </div>
+    <div class="sidebar">
+        <div class="logo">
+            <h1>Plantas que Falam</h1>
+            <p>Comunicação Vegetal em Tempo Real</p>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <button class="nav-btn active" data-tab="dashboard">
+                    Dashboard
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-btn" data-tab="plants">
+                    Plantas
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-btn" data-tab="analytics">
+                    Análises
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-btn" data-tab="settings">
+                    Configurações
+                </button>
+            </li>
+        </ul>
+        
+        <div class="connection-status">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="connection-status">Conectando...</span>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="header">
+                <h2>Dashboard Principal</h2>
+                <p>Monitoramento em tempo real da comunicação das plantas</p>
             </div>
-        </header>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Dashboard Tab -->
-            <div id="dashboard-tab" class="tab-content active">
-                <!-- Status Header -->
-                <div class="status-header">
-                    <div class="status-info">
-                        <h2>Dashboard das Plantas</h2>
-                        <p>Garanta a segurança das suas plantas através de sensores piezoelétricos</p>
-                    </div>
-                    <div class="frequency-display">
-                        <div class="frequency-value" id="dominant-freq">0.0 Hz</div>
-                        <div class="frequency-label">Frequência da Comunicação</div>
-                        <div class="plant-status" id="plant-status">Silêncio</div>
-                    </div>
+            
+            <!-- NOVO: Alerta de magnitude baixa -->
+            <div id="magnitude-alert" class="magnitude-alert">
+                ⚠️ ALERTA: Magnitude da Comunicação instável! Verifique a conexão da planta.
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Frequência Dominante</h3>
+                    <div class="stat-value" id="dominant-freq">0</div>
+                    <div class="stat-unit">Hz</div>
                 </div>
-
-                <!-- Metrics Grid -->
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-title">Sinal da Planta</span>
-                        </div>
-                        <div class="metric-value" id="raw-value">0</div>
-                        <div class="metric-subtitle">Intensidade do sinal</div>
-                    </div>
-
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-title">Bioeletricidade</span>
-                        </div>
-                        <div class="metric-value" id="voltage">0.00 V</div>
-                        <div class="metric-subtitle">Atividade elétrica</div>
-                    </div>
-
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-title">Intensidade</span>
-                        </div>
-                        <div class="metric-value" id="dominant-magnitude">0.000</div>
-                        <div class="metric-subtitle" id="dominant-magnitude-db">0.0 dB</div>
-                    </div>
-
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-title">Atividade Média</span>
-                        </div>
-                        <div class="metric-value" id="average-magnitude">0.000</div>
-                        <div class="metric-subtitle">Comunicação contínua</div>
-                    </div>
+                
+                <div class="stat-card">
+                    <h3>Magnitude do Sinal</h3>
+                    <div class="stat-value" id="signal-magnitude">0.000</div>
+                    <div class="stat-unit">Amplitude</div>
                 </div>
-
-                <!-- Charts Grid -->
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>Histórico de Comunicação</h3>
-                            <p>Últimas 20 "palavras" da sua planta</p>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="magnitudeChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>Espectro da Voz Vegetal</h3>
-                            <p>Análise das frequências de comunicação</p>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="bandsChart"></canvas>
-                        </div>
-                    </div>
+                
+                <div class="stat-card">
+                    <h3>Valor Bruto</h3>
+                    <div class="stat-value" id="raw-value">0</div>
+                    <div class="stat-unit">ADC</div>
                 </div>
-
-                <!-- Frequency Bands List -->
-                <div class="bands-card">
-                    <div class="bands-header">
-                        <h3>Análise Detalhada da Comunicação Vegetal</h3>
-                        <p>Decodificação das diferentes "tonalidades" da sua planta</p>
+                
+                <div class="stat-card">
+                    <h3>Voltagem</h3>
+                    <div class="stat-value" id="voltage-value">0.00</div>
+                    <div class="stat-unit">V</div>
+                </div>
+                
+                <!-- NOVO: Card da bateria -->
+                <div class="stat-card battery-card">
+                    <h3>Bateria ESP</h3>
+                    <div class="stat-value" id="battery-percentage">0</div>
+                    <div class="stat-unit">%</div>
+                    <div class="battery-indicator">
+                        <div class="battery-fill" id="battery-fill"></div>
                     </div>
-                    <div class="bands-grid" id="bands-list">
-                        <!-- Bandas serão preenchidas via JavaScript -->
+                    <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">
+                        <span id="battery-voltage">0.00V</span>
                     </div>
                 </div>
             </div>
-
-            <!-- Plants Tab -->
-            <div id="plants-tab" class="tab-content">
-                <div class="tab-header">
-                    <h2>Minhas Plantas</h2>
-                    <p>Gerencie suas plantas conectadas</p>
-                </div>
-                <div class="plants-grid" id="plants-grid">
-                    <!-- Plantas serão carregadas via JavaScript -->
+            
+            <div class="chart-container">
+                <h3>Magnitude da Comunicação em Tempo Real</h3>
+                <div class="chart-wrapper">
+                    <canvas id="magnitudeChart"></canvas>
                 </div>
             </div>
-
-            <!-- Analytics Tab -->
-            <div id="analytics-tab" class="tab-content">
-                <div class="tab-header">
-                    <h2>Analytics Avançado</h2>
-                    <p>Análises profundas da comunicação vegetal</p>
-                </div>
-                <div class="analytics-content" id="analytics-content">
-                    <!-- Analytics serão carregados via JavaScript -->
+            
+            <div class="chart-container">
+                <h3>Bandas de Frequência</h3>
+                <div class="bands-grid" id="bands-container">
+                    <div class="loading">Carregando dados das bandas...</div>
                 </div>
             </div>
-
-            <!-- Settings Tab -->
-            <div id="settings-tab" class="tab-content">
-                <div class="tab-header">
-                    <h2>Configurações</h2>
-                    <p>Personalize sua experiência</p>
+        </div>
+        
+        <!-- Plants Tab -->
+        <div id="plants" class="tab-content">
+            <div class="header">
+                <h2>Plantas Conectadas</h2>
+                <p>Status e informações das plantas monitoradas</p>
+            </div>
+            <div class="plants-grid" id="plants-container">
+                <div class="loading">Carregando plantas...</div>
+            </div>
+        </div>
+        
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="header">
+                <h2>Análises Detalhadas</h2>
+                <p>Análise avançada dos dados de comunicação das plantas</p>
+            </div>
+            
+            <div class="analysis-section">
+                <div class="metrics-grid" id="analytics-metrics">
+                    <div class="loading">Carregando métricas...</div>
                 </div>
-                <div class="settings-content">
-                    <div class="setting-group">
-                        <h3>Notificações</h3>
-                        <label class="switch">
-                            <input type="checkbox" id="notifications-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                        <span>Receber alertas quando as plantas se comunicarem</span>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h3>Comunicações por Hora</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="communicationsChart"></canvas>
                     </div>
-                    <div class="setting-group">
-                        <h3>Frequência de Atualização</h3>
-                        <select id="refresh-rate">
-                            <option value="1000">1 segundo</option>
-                            <option value="2000" selected>2 segundos</option>
-                            <option value="5000">5 segundos</option>
-                            <option value="10000">10 segundos</option>
-                        </select>
-                    </div>
-                    <div class="setting-group">
-                        <h3>Tema</h3>
-                        <select id="theme-select">
-                            <option value="green" selected>Verde Natureza</option>
-                            <option value="dark">Escuro</option>
-                            <option value="light">Claro</option>
-                        </select>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Distribuição de Frequências</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="frequencyDistChart"></canvas>
                     </div>
                 </div>
             </div>
-        </main>
+            
+            <div class="chart-container">
+                <h3>Análise de Bandas de Frequência</h3>
+                <div class="chart-wrapper">
+                    <canvas id="bandsAnalysisChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="header">
+                <h2>Configurações do Sistema</h2>
+                <p>Ajustes e configurações do sistema de monitoramento</p>
+            </div>
+            <div class="config-section">
+                <h3>Configurações do Sistema</h3>
+                <div class="form-grid">
+                    <div>
+                        <div class="form-group">
+                            <label class="form-label">Taxa de Atualização (ms)</label>
+                            <select id="refresh-rate" class="form-select">
+                                <option value="500">500ms (Muito Rápido)</option>
+                                <option value="1000">1000ms (Padrão)</option>
+                                <option value="2000">2000ms (Lento)</option>
+                                <option value="5000">5000ms (Muito Lento)</option>
+                            </select>
+                        </div>
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="alerts-enabled">
+                            <label>Alertas Habilitados</label>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label class="form-label">Modo de Operação</label>
+                            <select id="operation-mode" class="form-select">
+                                <option value="realtime">Tempo Real</option>
+                                <option value="batch">Processamento em Lote</option>
+                                <option value="eco">Modo Econômico</option>
+                            </select>
+                        </div>
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="data-logging">
+                            <label>Registro de Dados</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn" onclick="saveSettings()">Salvar Configurações</button>
+                    <button class="btn btn-secondary" onclick="resetSettings()" style="margin-left: 10px;">Restaurar Padrões</button>
+                </div>
+            </div>
+            
+            <div class="config-section">
+                <h3>Informações do Sistema</h3>
+                <div class="system-info" id="system-info">
+                    <div class="loading">Carregando informações do sistema...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="app.js"></script>
+    <script>
+        const CONFIG = {
+            API_BASE_URL: '/api',
+            REFRESH_INTERVAL: 1000,
+            CHART_MAX_POINTS: 20,
+            MAGNITUDE_ALERT_THRESHOLD: 80  // NOVO: Limite para alerta de magnitude
+        };
+
+        let appState = {
+            currentTab: 'dashboard',
+            refreshInterval: null,
+            charts: {
+                magnitude: null,
+                communications: null,
+                frequencyDist: null,
+                bandsAnalysis: null
+            },
+            isConnected: false,
+            settings: {}
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            setupNavigation();
+            startDataRefresh();
+            loadInitialData();
+            loadSettings();
+            console.log('Plantas que Falam - Aplicação iniciada');
+        }
+
+        function setupNavigation() {
+            const navButtons = document.querySelectorAll('.nav-btn');
+            
+            navButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    switchTab(tabId);
+                });
+            });
+        }
+
+        function switchTab(tabId) {
+            // Remove active class from all tabs and buttons
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to selected tab and button
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            
+            appState.currentTab = tabId;
+            
+            // Load specific data for each tab
+            if (tabId === 'plants') {
+                loadPlantsData();
+            } else if (tabId === 'analytics') {
+                loadAnalyticsData();
+            } else if (tabId === 'settings') {
+                loadSettings();
+            }
+        }
+
+        function startDataRefresh() {
+            if (appState.refreshInterval) {
+                clearInterval(appState.refreshInterval);
+            }
+            
+            appState.refreshInterval = setInterval(fetchData, CONFIG.REFRESH_INTERVAL);
+        }
+
+        function loadInitialData() {
+            fetchData();
+        }
+
+        function fetchData() {
+            fetch(`${CONFIG.API_BASE_URL}/data`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Dados recebidos:', data);
+                    updateDashboard(data);
+                    updateConnectionStatus('online');
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar dados:', error);
+                    updateConnectionStatus('offline');
+                });
+        }
+
+        function updateDashboard(data) {
+            // Atualizar estatísticas principais
+            updateElement('dominant-freq', data.dominant_frequency ? data.dominant_frequency.toFixed(1) : '0');
+            updateElement('signal-magnitude', data.dominant_magnitude ? data.dominant_magnitude.toFixed(6) : '0.000');
+            updateElement('raw-value', data.raw_value || '0');
+            updateElement('voltage-value', data.voltage ? data.voltage.toFixed(3) : '0.00');
+            
+            // NOVO: Atualizar dados da bateria
+            if (data.battery_percentage !== undefined) {
+                updateElement('battery-percentage', Math.round(data.battery_percentage));
+                updateElement('battery-voltage', data.battery_voltage ? data.battery_voltage.toFixed(2) : '0.00');
+                
+                // Atualizar indicador visual da bateria
+                const batteryFill = document.getElementById('battery-fill');
+                if (batteryFill) {
+                    batteryFill.style.width = `${data.battery_percentage}%`;
+                }
+            }
+            
+            // NOVO: Verificar alerta de magnitude
+            checkMagnitudeAlert(data.dominant_magnitude_db || -100); // Passa a magnitude em dB para a função de alerta
+            
+            // Atualizar gráfico
+            if (data.history) {
+                updateMagnitudeChart(data.history);
+            }
+            
+            // Atualizar bandas
+            if (data.bands) {
+                updateBands(data.bands);
+            }
+        }
+
+        // NOVO: Função para verificar e mostrar alerta de magnitude
+        function checkMagnitudeAlert(magnitude) {
+            const alertElement = document.getElementById('magnitude-alert');
+            if (alertElement) {
+                // Usar a magnitude em dB para a comparação
+                if (magnitude < CONFIG.MAGNITUDE_ALERT_THRESHOLD) {
+                    alertElement.classList.add('show');
+                } else {
+                    alertElement.classList.remove('show');
+                }
+            }
+        }
+
+        function updateElement(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function updateConnectionStatus(status) {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('connection-status');
+            
+            if (statusDot && statusText) {
+                statusDot.className = `status-dot ${status}`;
+                
+                switch(status) {
+                    case 'online':
+                        statusText.textContent = 'Conectado';
+                        appState.isConnected = true;
+                        break;
+                    case 'offline':
+                        statusText.textContent = 'Desconectado';
+                        appState.isConnected = false;
+                        break;
+                    case 'connecting':
+                        statusText.textContent = 'Conectando...';
+                        appState.isConnected = false;
+                        break;
+                }
+            }
+        }
+
+        function updateMagnitudeChart(historyData) {
+            const ctx = document.getElementById('magnitudeChart');
+            if (!ctx) return;
+            
+            if (appState.charts.magnitude) {
+                // Atualizar gráfico existente
+                appState.charts.magnitude.data.labels = historyData.map((item, index) => index);
+                appState.charts.magnitude.data.datasets[0].data = historyData.map(item => item.magnitude || item);
+                appState.charts.magnitude.update('none');
+            } else {
+                // Criar novo gráfico
+                appState.charts.magnitude = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: historyData.map((item, index) => index),
+                        datasets: [{
+                            label: 'Magnitude da Comunicação',
+                            data: historyData.map(item => item.magnitude || item),
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#22c55e',
+                            pointBorderColor: '#16a34a',
+                            pointRadius: 2,
+                            pointHoverRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: {
+                                    color: 'white',
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 0
+                        }
+                    }
+                });
+            }
+        }
+
+        function updateBands(bands) {
+            const container = document.getElementById('bands-container');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            bands.forEach(band => {
+                const bandElement = document.createElement('div');
+                bandElement.className = 'band-card';
+                bandElement.style.borderLeft = `4px solid ${band.color || '#22c55e'}`;
+                bandElement.innerHTML = `
+                    <div class="band-name">${band.name}</div>
+                    <div class="band-value">${(band.magnitude || 0).toFixed(3)}</div>
+                    <div class="band-db">${(band.magnitude_db || -80).toFixed(1)} dB</div>
+                    <div style="font-size: 0.7rem; opacity: 0.6; margin-top: 4px;">${band.range}</div>
+                `;
+                container.appendChild(bandElement);
+            });
+        }
+
+        // Funções para Plantas
+        function loadPlantsData() {
+            fetch(`${CONFIG.API_BASE_URL}/plants`)
+                .then(response => response.json())
+                .then(plants => {
+                    displayPlantsData(plants);
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar plantas:', error);
+                    document.getElementById('plants-container').innerHTML = 
+                        '<div class="loading">Erro ao carregar dados das plantas</div>';
+                });
+        }
+
+        function displayPlantsData(plants) {
+            const container = document.getElementById('plants-container');
+            container.innerHTML = '';
+            
+            plants.forEach(plant => {
+                const plantCard = document.createElement('div');
+                plantCard.className = 'plant-card';
+                
+                const statusClass = plant.status === 'online' ? 'status-online' : 
+                                  plant.status === 'maintenance' ? 'status-maintenance' : 'status-offline';
+                
+                plantCard.innerHTML = `
+                    <div class="plant-header">
+                        <div>
+                            <div class="plant-name">${plant.name}</div>
+                            <div class="plant-type">${plant.type}</div>
+                        </div>
+                        <div class="plant-status ${statusClass}">${plant.status}</div>
+                    </div>
+                    
+                    <div class="plant-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Localização</div>
+                            <div class="detail-value">${plant.location}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Saúde</div>
+                            <div class="detail-value">${plant.health_score}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Freq. Comunicação</div>
+                            <div class="detail-value">${plant.communication_frequency ? plant.communication_frequency.toFixed(1) + ' Hz' : 'N/A'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Força do Sinal</div>
+                            <div class="detail-value">${plant.signal_strength}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Última Comunicação</div>
+                            <div class="detail-value">${plant.last_communication}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Bateria</div>
+                            <div class="detail-value">${plant.battery_percentage ? Math.round(plant.battery_percentage) + '%' : 'N/A'}</div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(plantCard);
+            });
+        }
+
+        // Funções para Analytics
+        function loadAnalyticsData() {
+            Promise.all([
+                fetch(`${CONFIG.API_BASE_URL}/analytics/summary`).then(r => r.json()),
+                fetch(`${CONFIG.API_BASE_URL}/analytics/history`).then(r => r.json()),
+                fetch(`${CONFIG.API_BASE_URL}/analytics/bands`).then(r => r.json())
+            ])
+            .then(([summary, history, bands]) => {
+                displayAnalyticsSummary(summary);
+                updateCommunicationsChart(history.history);
+                updateFrequencyDistChart(summary.frequency_distribution);
+                updateBandsAnalysisChart(bands);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar análises:', error);
+            });
+        }
+
+        function displayAnalyticsSummary(summary) {
+            const container = document.getElementById('analytics-metrics');
+            container.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-value">${summary.total_plants}</div>
+                    <div class="metric-label">Total de Plantas</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${summary.active_plants}</div>
+                    <div class="metric-label">Plantas Ativas</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${summary.total_communications_today}</div>
+                    <div class="metric-label">Comunicações Hoje</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${summary.average_frequency ? summary.average_frequency.toFixed(1) : '0'}</div>
+                    <div class="metric-label">Freq. Média (Hz)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${summary.peak_frequency ? summary.peak_frequency.toFixed(1) : '0'}</div>
+                    <div class="metric-label">Pico de Freq. (Hz)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${summary.session_duration_minutes ? summary.session_duration_minutes.toFixed(0) : '0'}</div>
+                    <div class="metric-label">Sessão (min)</div>
+                </div>
+            `;
+        }
+
+        function updateCommunicationsChart(historyData) {
+            const ctx = document.getElementById('communicationsChart');
+            if (!ctx) return;
+            
+            if (appState.charts.communications) {
+                appState.charts.communications.destroy();
+            }
+            
+            appState.charts.communications = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: historyData.map(item => `${item.hour}h`),
+                    datasets: [{
+                        label: 'Comunicações',
+                        data: historyData.map(item => item.communications),
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateFrequencyDistChart(distributionData) {
+            const ctx = document.getElementById('frequencyDistChart');
+            if (!ctx) return;
+            
+            if (appState.charts.frequencyDist) {
+                appState.charts.frequencyDist.destroy();
+            }
+            
+            appState.charts.frequencyDist = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: distributionData.map(item => item.range),
+                    datasets: [{
+                        data: distributionData.map(item => item.percentage),
+                        backgroundColor: distributionData.map(item => item.color),
+                        borderWidth: 2,
+                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { 
+                                color: 'white',
+                                padding: 15,
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateBandsAnalysisChart(bandsData) {
+            const ctx = document.getElementById('bandsAnalysisChart');
+            if (!ctx) return;
+            
+            if (appState.charts.bandsAnalysis) {
+                appState.charts.bandsAnalysis.destroy();
+            }
+            
+            appState.charts.bandsAnalysis = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: bandsData.map(band => band.name),
+                    datasets: [{
+                        label: 'Magnitude Atual',
+                        data: bandsData.map(band => band.current_magnitude),
+                        backgroundColor: bandsData.map(band => band.color),
+                        borderColor: bandsData.map(band => band.color),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                maxRotation: 45
+                            }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Funções para Configurações
+        function loadSettings() {
+            fetch(`${CONFIG.API_BASE_URL}/config`)
+                .then(response => response.json())
+                .then(config => {
+                    populateSettingsForm(config);
+                    displaySystemInfo(config);
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar configurações:', error);
+                });
+        }
+
+        function populateSettingsForm(config) {
+            const elements = {
+                'plant-name': config.plant_name,
+                'plant-type': config.plant_type,
+                'sensitivity-threshold': config.sensitivity_threshold,
+                'refresh-rate': config.refresh_rate,
+                'auto-detection': config.auto_detection,
+                'alerts-enabled': config.alerts_enabled
+            };
+            
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = value;
+                    } else {
+                        element.value = value;
+                    }
+                }
+            });
+            
+            appState.settings = config;
+        }
+
+        function displaySystemInfo(config) {
+            const container = document.getElementById('system-info');
+            container.innerHTML = `
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">WiFi SSID:</span>
+                        <span class="info-value">${config.wifi_ssid}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Pino do Sensor:</span>
+                        <span class="info-value">GPIO ${config.sensor_pin}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Pino da Bateria:</span>
+                        <span class="info-value">GPIO ${config.battery_pin || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Freq. Amostragem:</span>
+                        <span class="info-value">${config.sampling_frequency} Hz</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Amostras:</span>
+                        <span class="info-value">${config.samples}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Uptime:</span>
+                        <span class="info-value">${Math.floor(config.system_uptime / 60000)} min</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Memória Livre:</span>
+                        <span class="info-value">${Math.floor(config.memory_free / 1024)} KB</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveSettings() {
+            const settings = {
+                plant_name: document.getElementById('plant-name')?.value || appState.settings.plant_name,
+                plant_type: document.getElementById('plant-type')?.value || appState.settings.plant_type,
+                sensitivity_threshold: parseFloat(document.getElementById('sensitivity-threshold')?.value) || appState.settings.sensitivity_threshold,
+                refresh_rate: parseInt(document.getElementById('refresh-rate')?.value) || appState.settings.refresh_rate,
+                auto_detection: document.getElementById('auto-detection')?.checked || appState.settings.auto_detection,
+                alerts_enabled: document.getElementById('alerts-enabled')?.checked || appState.settings.alerts_enabled
+            };
+
+            fetch(`${CONFIG.API_BASE_URL}/config`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('Configurações salvas:', result);
+                alert('Configurações salvas com sucesso!');
+                
+                // Atualizar intervalo de refresh se mudou
+                if (settings.refresh_rate !== CONFIG.REFRESH_INTERVAL) {
+                    CONFIG.REFRESH_INTERVAL = settings.refresh_rate;
+                    startDataRefresh();
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao salvar configurações:', error);
+                alert('Erro ao salvar configurações!');
+            });
+        }
+
+        function resetSettings() {
+            if (confirm('Tem certeza que deseja restaurar as configurações padrão?')) {
+                location.reload();
+            }
+        }
+
+        function exportData() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                settings: appState.settings,
+                charts_data: {
+                    magnitude: appState.charts.magnitude?.data,
+                    communications: appState.charts.communications?.data,
+                    frequencyDist: appState.charts.frequencyDist?.data,
+                    bandsAnalysis: appState.charts.bandsAnalysis?.data
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `plantas_dados_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Atalhos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case '1':
+                        e.preventDefault();
+                        switchTab('dashboard');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        switchTab('plants');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        switchTab('analytics');
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        switchTab('settings');
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        if (appState.currentTab === 'settings') {
+                            saveSettings();
+                        }
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        exportData();
+                        break;
+                }
+            }
+        });
+
+        // Detectar perda de conexão
+        window.addEventListener('online', function() {
+            console.log('Conexão restaurada');
+            updateConnectionStatus('online');
+            startDataRefresh();
+        });
+
+        window.addEventListener('offline', function() {
+            console.log('Conexão perdida');
+            updateConnectionStatus('offline');
+            if (appState.refreshInterval) {
+                clearInterval(appState.refreshInterval);
+            }
+        });
+
+        // Cleanup ao sair da página
+        window.addEventListener('beforeunload', function() {
+            if (appState.refreshInterval) {
+                clearInterval(appState.refreshInterval);
+            }
+            
+            // Destruir gráficos
+            Object.values(appState.charts).forEach(chart => {
+                if (chart) {
+                    chart.destroy();
+                }
+            });
+        });
+
+        console.log('Sistema Plantas que Falam carregado com sucesso!');
+        console.log('Dashboard disponível com monitoramento em tempo real');
+    </script>
 </body>
 </html>
