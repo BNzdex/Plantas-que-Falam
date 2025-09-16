@@ -62,8 +62,8 @@ struct SystemConfig {
   bool autoDetection = true;
   float sensitivityThreshold = 0.001;
   bool alertsEnabled = true;
-  String plantName = "Samambaia Principal";
-  String plantType = "Nephrolepis exaltata";
+  String plantName = "Cafesal 01";
+  String plantType = "Coffea arábica";
 } config;
 
 // Dados estatísticos
@@ -921,23 +921,8 @@ String getHTMLPage() {
         }
         
         .chart-container h3 {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .chart-value {
-            font-size: 2rem;
-            font-weight: bold;
+            margin-bottom: 20px;
             color: #22c55e;
-            margin-bottom: 5px;
-        }
-        
-        .chart-unit {
-            font-size: 0.9rem;
-            opacity: 0.7;
         }
         
         .chart-wrapper {
@@ -982,53 +967,130 @@ String getHTMLPage() {
             opacity: 0.7;
         }
         
-        /* Estilos para Plantas */
         .plants-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
+            max-width: 1200px; /* Limit maximum width */
         }
         
         .plant-card {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
-            padding: 25px;
+            padding: 20px; /* Reduced padding */
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            max-width: 400px; /* Limit card width */
+            width: 100%;
         }
         
         .plant-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px); /* Reduced hover effect */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
         
         .plant-header {
             display: flex;
-            justify-content: between;
-            align-items: center;
+            justify-content: space-between;
+            align-items: flex-start; /* Align to top */
             margin-bottom: 15px;
+            gap: 15px; /* Add gap between elements */
+        }
+        
+        .plant-info {
+            flex: 1; /* Take available space */
+            min-width: 0; /* Allow text truncation */
         }
         
         .plant-name {
-            font-size: 1.3rem;
+            font-size: 1.2rem; /* Slightly smaller */
             font-weight: bold;
             color: #22c55e;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Handle long names */
         }
         
         .plant-type {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             opacity: 0.7;
             font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .plant-status {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+            padding: 4px 10px; /* Smaller padding */
+            border-radius: 15px;
+            font-size: 0.75rem;
             font-weight: bold;
             text-transform: uppercase;
+            white-space: nowrap;
+            flex-shrink: 0; /* Don't shrink */
+        }
+        
+        .plant-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px; /* Reduced gap */
+            margin-top: 15px;
+        }
+        
+        .detail-item {
+            text-align: center;
+            padding: 8px; /* Add padding */
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .detail-label {
+            font-size: 0.75rem; /* Smaller font */
+            opacity: 0.7;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .detail-value {
+            font-size: 0.95rem; /* Smaller font */
+            font-weight: bold;
+            color: #22c55e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .plants-grid {
+                grid-template-columns: 1fr;
+                max-width: 100%;
+            }
+            
+            .plant-card {
+                max-width: 100%;
+            }
+            
+            .plant-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .plant-details {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .plant-name,
+            .plant-type {
+                white-space: normal; /* Allow wrapping on mobile */
+                overflow: visible;
+                text-overflow: unset;
+            }
         }
         
         .status-online {
@@ -1049,29 +1111,6 @@ String getHTMLPage() {
             border: 1px solid #f59e0b;
         }
         
-        .plant-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        .detail-item {
-            text-align: center;
-        }
-        
-        .detail-label {
-            font-size: 0.8rem;
-            opacity: 0.7;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-        }
-        
-        .detail-value {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #22c55e;
-        }
         
         /* Estilos para Análises */
         .analysis-section {
@@ -1309,7 +1348,7 @@ String getHTMLPage() {
             
             <!-- NOVO: Alerta de magnitude baixa -->
             <div id="magnitude-alert" class="magnitude-alert">
-                ⚠️ ALERTA: Magnitude da Comunicação abaixo de 59! Verifique a conexão da planta.
+                ⚠️ ALERTA: Magnitude da Comunicação instável! Verifique a conexão da planta.
             </div>
             
             <div class="stats-grid">
@@ -1474,7 +1513,7 @@ String getHTMLPage() {
             API_BASE_URL: '/api',
             REFRESH_INTERVAL: 1000,
             CHART_MAX_POINTS: 20,
-            MAGNITUDE_ALERT_THRESHOLD: -59  // Limite para alerta de magnitude
+            MAGNITUDE_ALERT_THRESHOLD: 80  // NOVO: Limite para alerta de magnitude
         };
 
         let appState = {
@@ -1588,33 +1627,32 @@ String getHTMLPage() {
                 }
             }
             
-        // NOVO: Verificar alerta de magnitude
-        checkMagnitudeAlert(data.dominant_magnitude_db || -100); // Passa a magnitude em dB para a função de alerta
-        
-        // Atualizar gráfico
-        if (data.history) {
-            updateMagnitudeChart(data.history);
-        }
-        
-        // Atualizar bandas
-        if (data.bands) {
-            updateBands(data.bands);
-        }
-    }
-
-    // FUNÇÃO CORRIGIDA: A lógica agora compara corretamente o valor com o novo threshold de 59.
-    function checkMagnitudeAlert(magnitudeDb) {
-        const alertElement = document.getElementById('magnitude-alert');
-        if (alertElement) {
-            // Se a magnitude for menor que 59, o alerta será exibido
-            if (magnitudeDb < CONFIG.MAGNITUDE_ALERT_THRESHOLD) {
-                alertElement.classList.add('show');
-            } else {
-                alertElement.classList.remove('show');
+            // NOVO: Verificar alerta de magnitude
+            checkMagnitudeAlert(data.dominant_magnitude_db || -100); // Passa a magnitude em dB para a função de alerta
+            
+            // Atualizar gráfico
+            if (data.history) {
+                updateMagnitudeChart(data.history);
+            }
+            
+            // Atualizar bandas
+            if (data.bands) {
+                updateBands(data.bands);
             }
         }
-    }
 
+        // NOVO: Função para verificar e mostrar alerta de magnitude
+        function checkMagnitudeAlert(magnitude) {
+            const alertElement = document.getElementById('magnitude-alert');
+            if (alertElement) {
+                // Usar a magnitude em dB para a comparação
+                if (magnitude < CONFIG.MAGNITUDE_ALERT_THRESHOLD) {
+                    alertElement.classList.add('show');
+                } else {
+                    alertElement.classList.remove('show');
+                }
+            }
+        }
 
         function updateElement(id, value) {
             const element = document.getElementById(id);
