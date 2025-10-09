@@ -19,16 +19,22 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 #define PIEZO_PIN 34  // Pino analógico do sensor piezoelétrico
 
+unsigned long ultimaLeitura = 0;
+float ultimaTensao = 0;
+float ultimaFrequencia = 0;
+int ultimoEstado = 0;
+unsigned long tempoUltimoPico = 0;
+int contadorPicos = 0;
+
 void setup() {
   Serial.begin(115200);
-  analogReadResolution(12);  // ESP32 suporta até 12 bits (0-4095)
-
+  
   Wire.begin(21, 22);
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println("Erro no display");
-    while (1);
+    while(1);
   }
-
+  
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
@@ -40,13 +46,13 @@ void setup() {
 
   SPI.begin(SCK, MISO, MOSI, SS);
   LoRa.setPins(SS, RST, DIO0);
-
+  
   if (!LoRa.begin(BAND)) {
     display.clearDisplay();
     display.setCursor(0, 0);
     display.println("ERRO LORA!");
     display.display();
-    while (1);
+    while(1);
   }
 
   LoRa.setSpreadingFactor(7);
@@ -58,34 +64,51 @@ void setup() {
   display.setCursor(0, 0);
   display.println("LoRa Pronto!");
   display.display();
-  delay(1500);
+  delay(1000);
 }
 
 void loop() {
-  // Leitura do sensor piezoelétrico
   int leitura = analogRead(PIEZO_PIN);
+  float tensao = (leitura * 3.3) / 4095.0;
 
-  // Monta mensagem
-  String mensagem = "Piezo: " + String(leitura);
+  // Detectar frequência aproximada (contando picos)
+  int estadoAtual = (leitura > 2000); // 2000 é um limiar de vibração
+  if (estadoAtual && !ultimoEstado) {
+    unsigned long agora = micros();
+    if (tempoUltimoPico != 0) {
+      float periodo = (agora - tempoUltimoPico) / 1000000.0;
+      ultimaFrequencia = 1.0 / periodo;
+    }
+    tempoUltimoPico = agora;
+  }
+  ultimoEstado = estadoAtual;
 
-  // Envia via LoRa
+  // Montar mensagem LoRa
+  String mensagem = "Valor:" + String(leitura) + ",Tensao:" + String(tensao, 2) + ",Freq:" + String(ultimaFrequencia, 1);
+  
   LoRa.beginPacket();
   LoRa.print(mensagem);
   LoRa.endPacket();
 
-  // Exibe no display
+  // Mostrar no display
   display.clearDisplay();
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.println("TRANSMISSOR");
   display.println("================");
-  display.setTextSize(2);
-  display.println("Enviado:");
   display.setTextSize(1);
-  display.println(mensagem);
+  display.println("Leitura:");
+  display.setTextSize(2);
+  display.println(leitura);
+  display.setTextSize(1);
+  display.print("Tensao: ");
+  display.print(tensao, 2);
+  display.println("V");
+  display.print("Freq: ");
+  display.print(ultimaFrequencia, 1);
+  display.println("Hz");
   display.display();
 
   Serial.println("Enviado: " + mensagem);
-
-  delay(1000);  // Ajuste conforme a frequência desejada de leitura
+  delay(10000);
 }
