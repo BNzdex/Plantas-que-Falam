@@ -10,8 +10,7 @@ O projeto combina **IoT, Flask, JavaScript e Chart.js**, permitindo análise em 
 - 📡 **Coleta de dados** em tempo real a partir do ESP32.  
 - 📊 **Dashboard interativo** com gráficos de comunicação das plantas (histórico e espectro).  
 - 🌍 **Gerenciamento de múltiplas plantas** com status online/offline.  
-- 🔔 **Notificações do navegador** quando a planta “fala”.  
-- 🎨 **Personalização de tema** (Verde Natureza, Escuro e Claro).  
+- 🔔 **Notificações do navegador** quando for detectada a presença de nematóides.    
 - ⚙️ **Configurações dinâmicas** de taxa de atualização e preferências.  
 - 📈 **Módulo de Analytics** com resumo de tendências e distribuições de frequência.
 
